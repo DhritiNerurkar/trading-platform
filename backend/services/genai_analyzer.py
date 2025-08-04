@@ -21,19 +21,14 @@ class GenAIAnalyzer:
             print(f"Error communicating with Ollama API: {e}")
             return "Error: Could not connect to the Generative AI model."
 
-    # --- NEW: Master function for the "Ask Nomura AI" feature ---
     async def handle_user_query(self, query: str):
-        """
-        Analyzes a user's natural language query, determines intent,
-        gathers relevant data, and generates an AI-powered response.
-        """
         query_lower = query.lower()
         
-        # Intent 1: Asking about portfolio performance
-        if "portfolio" in query_lower or "best performer" in query_lower or "worst performer" in query_lower or "my holdings" in query_lower:
+        # Intent 1: Asking about portfolio
+        if "portfolio" in query_lower or "performer" in query_lower or "holdings" in query_lower:
             return await self.answer_portfolio_query(query)
 
-        # Intent 2: Asking for news or sentiment about a specific stock
+        # Intent 2: Asking for news/sentiment for a specific stock
         found_ticker = None
         for ticker in TICKERS:
             if ticker.lower() in query_lower:
@@ -42,7 +37,7 @@ class GenAIAnalyzer:
         if found_ticker:
             return await self.answer_news_query(query, found_ticker)
 
-        # Default Intent: General question
+        # Default Intent: General question / Potential financial advice
         return await self.answer_general_query(query)
 
     async def answer_portfolio_query(self, query: str):
@@ -51,40 +46,46 @@ class GenAIAnalyzer:
         if not holdings:
             return {"answer": "You currently have no holdings in your portfolio."}
 
-        # Calculate P&L to provide context
         pnl_data = []
         for ticker, data in holdings.items():
             prev_close = data_loader.previous_day_closes.get(ticker)
             if prev_close:
                 pnl = (data['market_price'] - prev_close) * data['shares']
-                pnl_data.append(f"{ticker}: P&L ${pnl:.2f}")
+                pnl_data.append(f"{ticker}: Today's P&L ${pnl:.2f}")
         
-        context = f"Current Holdings: {holdings}. Today's P&L: {pnl_data}."
-        prompt = f"You are an AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer."
+        context = f"Current Holdings: {holdings}. Today's P&L data: {pnl_data}."
+        prompt = f"You are a helpful AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer."
         answer = await self._run_genai_prompt(prompt)
         return {"answer": answer}
 
     async def answer_news_query(self, query: str, ticker: str):
         news_items = await self.get_sentiment_for_ticker(ticker)
         context = f"Recent news for {ticker}: {news_items}"
-        prompt = f"You are an AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer."
+        prompt = f"You are a helpful AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer summarizing the news and overall sentiment."
         answer = await self._run_genai_prompt(prompt)
         return {"answer": answer}
 
+    # --- THE FIX IS HERE ---
     async def answer_general_query(self, query: str):
-        # Safety net: Prevent giving financial advice
+        """Handles general queries and explicitly prevents financial advice."""
+        # This new prompt is direct and gives the AI a clear set of rules.
         prompt = f"""
-        You are an AI assistant for the 'Nomura Next-Gen Trading' platform. A user asked a general question: '{query}'.
-        Analyze the user's question. 
-        - If it asks for financial advice (e.g., "should I buy...", "is this a good stock..."), you MUST politely decline and state that you cannot provide financial advice.
-        - For any other general question, provide a helpful but brief response.
+        **ROLE AND GOAL**: You are "Nomura AI", a helpful assistant for a financial trading platform. Your primary goal is to be helpful while being extremely safe and never giving financial advice.
+
+        **RULES**:
+        1.  **NEVER give financial advice.** Do not suggest buying, selling, or holding any specific stock. Do not predict future prices.
+        2.  If the user asks for financial advice, you MUST politely decline. Start your response with: "As an AI assistant, I cannot provide financial advice."
+        3.  For any other general question, provide a brief, helpful answer.
+
+        **USER'S QUESTION**: "{query}"
+
+        **YOUR RESPONSE**:
         """
         answer = await self._run_genai_prompt(prompt)
         return {"answer": answer}
 
-    # --- Existing GenAI Functions ---
     async def get_sentiment_for_ticker(self, ticker: str):
-        # ... (this function remains the same)
+        # ... (this function remains the same) ...
         news_items = data_loader.news_data.get(ticker, [])
         recent_news = sorted(news_items, key=lambda x: x['time_published'], reverse=True)[:5]
         async def analyze_headline(headline: str):
@@ -99,9 +100,8 @@ class GenAIAnalyzer:
         analyzed_news = await asyncio.gather(*[analyze_headline(item['title']) for item in recent_news])
         return analyzed_news
 
-
-    async def generate_portfolio_briefing(self):
-        # ... (this function remains the same)
+    async def generate_portfolio_briefing(self,):
+        # ... (this function remains the same) ...
         holdings = portfolio_manager.get_state()['holdings']
         if not holdings: return {"briefing": "You have no holdings in your portfolio to analyze."}
         holdings_str = ", ".join([f"{data['shares']} shares of {ticker}" for ticker, data in holdings.items()])
@@ -111,13 +111,14 @@ class GenAIAnalyzer:
             return f"News for {ticker}: {'; '.join(headlines)}"
         news_list = await asyncio.gather(*[get_news_for_ticker(ticker) for ticker in holdings.keys()])
         news_str = "\n".join(news_list)
-        prompt = f"""**Role**: You are a professional financial analyst providing a daily briefing to a client. **Client's Portfolio**: {holdings_str}. **Latest News**: {news_str}\n**Task**: Based *only* on the provided news, generate a 2-3 sentence professional summary. - **First Sentence**: Start with the overall sentiment (e.g., "The portfolio faces a mixed outlook...", "A positive sentiment surrounds the portfolio today..."). - **Following Sentences**: Identify the single most impactful news item and briefly state its potential effect. - **Constraint**: Do not use conversational filler. Be direct and professional."""
+        prompt = f"""**Role**: You are a professional financial analyst providing a daily briefing to a client. **Client's Portfolio**: {holdings_str}. **Latest News**: {news_str}\n**Task**: Based *only* on the provided news, generate a 2-3 sentence professional summary. - **First Sentence**: Start with the overall sentiment (e.g., "The portfolio faces a mixed outlook...", "A positive sentiment surrounds the portfolio today..."). - **Following Sentences**: Identify the single most impactful news item and briefly state its potential effect. - **Constraint**: Do not use conversational filler like "Okay, here's...". Be direct and professional."""
         briefing = await self._run_genai_prompt(prompt)
         briefing = briefing.replace("**Overall Sentiment:**", "").strip()
         return {"briefing": briefing}
 
+
     async def analyze_chart_data(self, ticker: str, prices: list):
-        # ... (this function remains the same)
+        # ... (this function remains the same) ...
         if not prices or len(prices) < 2: return {"analysis": "Not enough data to perform analysis."}
         price_points = [item['close'] for item in prices[-20:]]
         volume_points = [item['volume'] for item in prices[-20:]]

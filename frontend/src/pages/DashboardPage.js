@@ -61,7 +61,7 @@ const DashboardPage = () => {
                         <Tabs value={activeTab} onChange={handleTabChange} aria-label="tabs">
                             <Tab label="Chart" />
                             <Tab label="Portfolio Analytics" />
-                            <Tab label="News & Sentiment" />
+                            
                         </Tabs>
                     </Box>
                     <Box sx={{ flexGrow: 1, p: 1, minHeight: 0 }}>

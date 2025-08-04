@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Typography, Paper, CircularProgress, Grid } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useData } from '../context/DataContext';
+import GenerateBriefing from '../components/GenerateBriefing';
 
 const PortfolioPage = () => {
-    // Consume global state. The portfolio object now contains everything we need.
     const { portfolio, isConnected } = useData();
 
     if (!isConnected || !portfolio) {
@@ -13,65 +13,77 @@ const PortfolioPage = () => {
     
     const formatNumber = (value) => (typeof value === 'number' ? value : 0);
 
+    // --- THE FIX: All calculations are performed here, creating a clean `rows` object ---
+    const rows = Object.entries(portfolio.holdings).map(([ticker, holding]) => {
+        const market_value = (holding.market_price || 0) * holding.shares;
+        const cost_basis = holding.avg_price * holding.shares;
+        const pnl = market_value - cost_basis;
+        const pnl_percent = cost_basis > 0 ? (pnl / cost_basis) * 100 : 0;
+
+        return {
+            id: ticker,
+            ticker,
+            shares: holding.shares,
+            avg_price: holding.avg_price,
+            market_price: holding.market_price,
+            market_value,
+            total_pnl: pnl,
+            total_pnl_percent: pnl_percent,
+        };
+    });
+
+    const totalPnlValue = rows.reduce((acc, row) => acc + row.total_pnl, 0);
+
+    // --- THE FIX: Column definitions are now simple and only handle display formatting ---
     const columns = [
-        { field: 'ticker', headerName: 'Ticker', width: 100, sortable: false },
-        { field: 'shares', headerName: 'Shares', type: 'number', width: 120, sortable: false },
+        { field: 'ticker', headerName: 'Ticker', width: 100 },
+        { field: 'shares', headerName: 'Shares', type: 'number', width: 120 },
+        { 
+            field: 'avg_price', 
+            headerName: 'Avg. Cost', 
+            type: 'number', 
+            width: 130, 
+            valueFormatter: ({ value }) => `$${formatNumber(value).toFixed(2)}` 
+        },
+        { 
+            field: 'market_price', 
+            headerName: 'Last Price', 
+            type: 'number', 
+            width: 130, 
+            renderCell: (params) => params.value ? `$${formatNumber(params.value).toFixed(2)}` : '...' 
+        },
+        { 
+            field: 'market_value', 
+            headerName: 'Market Value', 
+            type: 'number', 
+            width: 150, 
+            valueFormatter: ({ value }) => `$${formatNumber(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` 
+        },
         {
-            field: 'avg_price', headerName: 'Avg. Cost', type: 'number', width: 130, sortable: false,
+            field: 'total_pnl', 
+            headerName: 'Total P&L', 
+            type: 'number', 
+            width: 150,
+            cellClassName: (params) => params.value >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative',
             valueFormatter: ({ value }) => `$${formatNumber(value).toFixed(2)}`
         },
         {
-            field: 'market_price', headerName: 'Last Price', type: 'number', width: 130, sortable: false,
-            // --- DEFINITIVE ROBUST CHECK ---
-            valueGetter: (params) => (params && params.row) ? params.row.market_price : 0,
-            renderCell: (params) => params.value ? `$${formatNumber(params.value).toFixed(2)}` : '...'
-        },
-        {
-            field: 'market_value', headerName: 'Market Value', type: 'number', width: 150, sortable: false,
-            // --- DEFINITIVE ROBUST CHECK ---
-            valueGetter: (params) => (params && params.row) ? (params.row.market_price || 0) * params.row.shares : 0,
-            renderCell: (params) => params.value ? `$${formatNumber(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '...'
-        },
-        {
-            field: 'total_pnl', headerName: 'Total P&L', type: 'number', width: 150, sortable: false,
-            // --- DEFINITIVE ROBUST CHECK ---
-            cellClassName: (params) => (params && typeof params.value === 'number' && params.value >= 0) ? 'super-app-theme--positive' : 'super-app-theme--negative',
-            valueGetter: (params) => {
-                if (!params || !params.row) return 0;
-                return ((params.row.market_price || 0) * params.row.shares) - (params.row.avg_price * params.row.shares);
-            },
-            renderCell: (params) => (params && params.row && params.row.market_price) ? `$${formatNumber(params.value).toFixed(2)}` : '...'
-        },
-        {
-            field: 'total_pnl_percent', headerName: 'Total P&L %', type: 'number', width: 150, sortable: false,
-            // --- DEFINITIVE ROBUST CHECK ---
-            cellClassName: (params) => (params && typeof params.value === 'number' && params.value >= 0) ? 'super-app-theme--positive' : 'super-app-theme--negative',
-            valueGetter: (params) => {
-                if (!params || !params.row) return 0;
-                const cost_basis = params.row.avg_price * params.row.shares;
-                if (cost_basis === 0) return 0;
-                const market_value = (params.row.market_price || 0) * params.row.shares;
-                return ((market_value - cost_basis) / cost_basis) * 100;
-            },
-            renderCell: (params) => (params && params.row && params.row.market_price) ? `${formatNumber(params.value).toFixed(2)}%` : '...'
+            field: 'total_pnl_percent', 
+            headerName: 'Total P&L %', 
+            type: 'number', 
+            width: 150,
+            cellClassName: (params) => params.value >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative',
+            renderCell: (params) => params.row.market_price ? `${formatNumber(params.value).toFixed(2)}%` : '...'
         },
     ];
 
-    const rows = Object.entries(portfolio.holdings).map(([ticker, holding]) => ({
-        id: ticker,
-        ticker,
-        ...holding
-    }));
-    
-    const totalPnlValue = rows.reduce((acc, row) => {
-        const market_value = (row.market_price || 0) * row.shares;
-        const cost_basis = row.avg_price * row.shares;
-        return acc + (market_value - cost_basis);
-    }, 0);
-
     return (
         <Box>
-            <Typography variant="h4" gutterBottom>My Portfolio</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4">My Portfolio</Typography>
+                <GenerateBriefing />
+            </Box>
+            
             <Paper sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={3} textAlign="center">
                     <Grid item xs={12} sm={4}>
@@ -90,8 +102,8 @@ const PortfolioPage = () => {
                     </Grid>
                 </Grid>
             </Paper>
-
-            <Paper sx={{ height: 600, width: 'public/index.html' }}>
+            
+            <Paper sx={{ height: 600, width: '100%' }}>
                 <DataGrid
                     rows={rows}
                     columns={columns}
