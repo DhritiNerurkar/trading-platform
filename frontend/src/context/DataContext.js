@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { toast } from 'react-toastify'; // Import the toast library
 
 // Create the context
 const DataContext = createContext(null);
@@ -15,20 +16,20 @@ export const DataProvider = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // This effect runs only once and manages the single WebSocket connection
-        const ws = new WebSocket('ws://localhost:8000/ws/live');
+        // --- WebSocket #1: For Market Data (Your existing, working code) ---
+        const marketWs = new WebSocket('ws://localhost:8000/ws/market-data');
 
-        ws.onopen = () => {
-            console.log("Global WebSocket Connected");
+        marketWs.onopen = () => {
+            console.log("Market Data WebSocket Connected");
             setIsConnected(true);
         };
         
-        ws.onclose = () => {
-            console.log("Global WebSocket Disconnected");
+        marketWs.onclose = () => {
+            console.log("Market Data WebSocket Disconnected");
             setIsConnected(false);
         };
 
-        ws.onmessage = (event) => {
+        marketWs.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === 'market_data') {
                 const newLiveData = {};
@@ -45,16 +46,40 @@ export const DataProvider = ({ children }) => {
                             prevPrice: prevData[key]?.price
                         };
                     });
-                    return updatedData;
+                    // Merge new data with previous to avoid losing data for tickers that didn't update this tick
+                    return { ...prevData, ...updatedData };
                 });
 
                 setPortfolio(data.portfolio);
             }
         };
 
-        // Cleanup on app unmount
+        // --- THE FIX: Add WebSocket #2 for the new Alert System ---
+        const alertWs = new WebSocket('ws://localhost:8000/ws/alerts');
+
+        alertWs.onopen = () => console.log("Alerts WebSocket Connected");
+        alertWs.onclose = () => console.log("Alerts WebSocket Disconnected");
+
+        alertWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'alert') {
+                // When an alert message is received, show a toast notification.
+                // The `toast.info` function comes from the react-toastify library.
+                toast.info(data.message, {
+                    position: "bottom-right",
+                    autoClose: 10000, // Keep alert on screen for 10 seconds
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
+            }
+        };
+
+        // Cleanup function to close both WebSocket connections when the app unmounts
         return () => {
-            ws.close();
+            marketWs.close();
+            alertWs.close();
         };
     }, []); // Empty dependency array ensures this runs only ONCE
 

@@ -4,9 +4,11 @@ import { DataGrid } from '@mui/x-data-grid';
 import { useData } from '../context/DataContext';
 import GenerateBriefing from '../components/GenerateBriefing';
 import apiClient from '../api/apiClient';
+import PortfolioComposition from '../components/PortfolioComposition';
+import TopMovers from '../components/TopMovers';
 
 const PortfolioPage = () => {
-    const { portfolio, isConnected } = useData();
+    const { portfolio, liveData, isConnected } = useData();
     const [view, setView] = useState('holdings');
     const [transactions, setTransactions] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
@@ -27,13 +29,16 @@ const PortfolioPage = () => {
         }
     }, [portfolio, isConnected]);
 
+    if (!isConnected || !portfolio) {
+        return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+    }
+
     const safeNumber = (val) => {
         if (val === null || val === undefined) return 0;
         const num = typeof val === 'string' ? parseFloat(val.replace(/[$,%]/g, '').trim()) : val;
         return isNaN(num) ? 0 : num;
     };
 
-    // --- HOLDINGS DATA (Working Correctly) ---
     const holdingsRows = Object.entries(portfolio.holdings).map(([ticker, holding]) => {
         const shares = safeNumber(holding.shares);
         const avg_price = safeNumber(holding.avg_price);
@@ -48,38 +53,31 @@ const PortfolioPage = () => {
     const totalPnlValue = holdingsRows.reduce((acc, row) => acc + row.total_pnl, 0);
 
     const holdingsColumns = [
-        { field: 'ticker', headerName: 'Ticker', width: 100 }, { field: 'shares', headerName: 'Shares', type: 'number', width: 120 },
-        { field: 'avg_price', headerName: 'Avg. Cost', type: 'number', width: 130, renderCell: (params) => `$${safeNumber(params.value).toFixed(2)}` },
-        { field: 'market_price', headerName: 'Last Price', type: 'number', width: 130, renderCell: (params) => params.value ? `$${safeNumber(params.value).toFixed(2)}` : '...' },
-        { field: 'market_value', headerName: 'Market Value', type: 'number', width: 150, renderCell: (params) => `$${safeNumber(params.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-        { field: 'total_pnl', headerName: 'Total P&L', type: 'number', width: 150, cellClassName: (params) => safeNumber(params.value) >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative', renderCell: (params) => `$${safeNumber(params.value).toFixed(2)}` },
-        { field: 'total_pnl_percent', headerName: 'Total P&L %', type: 'number', width: 150, cellClassName: (params) => safeNumber(params.value) >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative', renderCell: (params) => params.row.market_price ? `${safeNumber(params.value).toFixed(2)}%` : '...' },
+        { field: 'ticker', headerName: 'Ticker', flex: 1 }, { field: 'shares', headerName: 'Shares', type: 'number', flex: 1 },
+        { field: 'avg_price', headerName: 'Avg. Cost', type: 'number', flex: 1, renderCell: (params) => `$${safeNumber(params.value).toFixed(2)}` },
+        { field: 'market_price', headerName: 'Last Price', type: 'number', flex: 1, renderCell: (params) => params.value ? `$${safeNumber(params.value).toFixed(2)}` : '...' },
+        { field: 'market_value', headerName: 'Market Value', type: 'number', flex: 1, renderCell: (params) => `$${safeNumber(params.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+        { field: 'total_pnl', headerName: 'Total P&L', type: 'number', flex: 1, cellClassName: (params) => safeNumber(params.value) >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative', renderCell: (params) => `$${safeNumber(params.value).toFixed(2)}` },
+        { field: 'total_pnl_percent', headerName: 'Total P&L %', type: 'number', flex: 1, cellClassName: (params) => safeNumber(params.value) >= 0 ? 'super-app-theme--positive' : 'super-app-theme--negative', renderCell: (params) => params.row.market_price ? `${safeNumber(params.value).toFixed(2)}%` : '...' },
     ];
 
-    // --- TRANSACTION HISTORY DATA (The Fix) ---
     const historyRows = transactions.map((tx, index) => ({
-        id: index, // Use index as a stable ID for the transaction list
-        timestamp: tx.timestamp,
-        ticker: tx.ticker,
-        action: tx.action,
-        quantity: safeNumber(tx.quantity),
-        price: safeNumber(tx.price),
-        total_value: safeNumber(tx.total_value),
+        id: index, timestamp: tx.timestamp, ticker: tx.ticker, action: tx.action,
+        quantity: safeNumber(tx.quantity), price: safeNumber(tx.price), total_value: safeNumber(tx.total_value),
     }));
 
     const historyColumns = [
         { field: 'timestamp', headerName: 'Date', width: 200, renderCell: (params) => new Date(params.value).toLocaleString() },
         { field: 'ticker', headerName: 'Ticker', width: 100 },
-        { field: 'action', headerName: 'Action', width: 100, renderCell: (params) => (
-            <Typography sx={{ fontWeight: 'bold', color: params.value === 'BUY' ? 'success.main' : 'error.main' }}>
-                {params.value}
-            </Typography>
-        )},
+        { field: 'action', headerName: 'Action', width: 100, renderCell: (params) => (<Typography sx={{ fontWeight: 'bold', color: params.value === 'BUY' ? 'success.main' : 'error.main' }}>{params.value}</Typography>)},
         { field: 'quantity', headerName: 'Quantity', type: 'number', width: 100 },
         { field: 'price', headerName: 'Price', type: 'number', width: 130, renderCell: (params) => `$${safeNumber(params.value).toFixed(2)}` },
-        { field: 'total_value', headerName: 'Total Value', type: 'number', width: 150, renderCell: (params) => `$${safeNumber(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` },
+        { field: 'total_value', headerName: 'Total Value', type: 'number', flex: 1, renderCell: (params) => `$${safeNumber(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` },
     ];
-    // --- END FIX ---
+
+    const prevDayCloses = Object.fromEntries(
+        Object.values(liveData).map(stock => [stock.ticker, stock.price - stock.change])
+    );
 
     return (
         <Box>
@@ -96,29 +94,39 @@ const PortfolioPage = () => {
                 </Grid>
             </Paper>
 
+            {/* --- THE FIX: Re-ordering the components --- */}
+            
+            {/* 1. Toggle Buttons and Data Tables */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                 <ToggleButtonGroup color="primary" value={view} exclusive onChange={(event, newView) => { if (newView !== null) setView(newView); }}>
                     <ToggleButton value="holdings">Current Holdings</ToggleButton>
                     <ToggleButton value="history">Transaction History</ToggleButton>
                 </ToggleButtonGroup>
             </Box>
-            
-            <Paper sx={{ height: 600, width: '100%' }}>
+            <Paper sx={{ height: 400, width: '100%', mb: 3 }}>
                 {view === 'holdings' && (
                     <DataGrid
                         rows={holdingsRows} columns={holdingsColumns}
-                        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} pageSizeOptions={[10]} disableRowSelectionOnClick
                         sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { borderBottom: '1px solid #444' }, '& .MuiDataGrid-cell': { borderBottom: '1px solid #444' }, '& .super-app-theme--negative': { color: 'error.main', fontWeight: '600' }, '& .super-app-theme--positive': { color: 'success.main', fontWeight: '600' } }}
                     />
                 )}
                 {view === 'history' && (
                      <DataGrid
                         rows={historyRows} columns={historyColumns} loading={loadingHistory}
-                        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} pageSizeOptions={[10]} disableRowSelectionOnClick
                         sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { borderBottom: '1px solid #444' }, '& .MuiDataGrid-cell': { borderBottom: '1px solid #444' } }}
                     />
                 )}
             </Paper>
+
+            {/* 2. Analytics Widgets (Now at the bottom) */}
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={7}>
+                    <PortfolioComposition holdings={portfolio.holdings} />
+                </Grid>
+                <Grid item xs={12} md={5}>
+                    <TopMovers holdings={portfolio.holdings} prevDayCloses={prevDayCloses} />
+                </Grid>
+            </Grid>
         </Box>
     );
 };

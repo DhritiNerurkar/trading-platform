@@ -4,14 +4,17 @@ import Plot from 'react-plotly.js';
 import { useData } from '../context/DataContext';
 import {
     Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    CircularProgress, List, ListItem, ListItemText, Tabs, Tab, Button, Collapse
+    CircularProgress, List, ListItem, ListItemText, Tabs, Tab, Button, Collapse, IconButton
 } from '@mui/material';
 import { keyframes } from '@emotion/react';
 import { TypeAnimation } from 'react-type-animation';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
+// --- Import all necessary child components and icons ---
 import AdvancedTradeTicket from '../components/AdvancedTradeTicket';
 import PortfolioAnalytics from '../components/PortfolioAnalytics';
+import PriceAlertModal from '../components/PriceAlertModal';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 const flashGreen = keyframes`from { background-color: #004d40; } to { background-color: transparent; }`;
 const flashRed = keyframes`from { background-color: #b71c1c; } to { background-color: transparent; }`;
@@ -21,19 +24,14 @@ const DashboardPage = () => {
     const [selectedTicker, setSelectedTicker] = useState('AAPL');
     const [activeTab, setActiveTab] = useState(0);
 
-    const handleTabChange = (event, newValue) => { // Corrected the handler name
+    const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
     };
 
     if (!isConnected || !portfolio) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><CircularProgress /></Box>;
     }
     
-    // Get the full data object for the selected stock to pass down
     const selectedStockData = liveData[selectedTicker];
 
     return (
@@ -43,8 +41,6 @@ const DashboardPage = () => {
                     <Watchlist liveData={liveData} onSelectTicker={setSelectedTicker} />
                 </Paper>
                 <Paper sx={{ flexGrow: 1 }}>
-                    {/* --- THE FIX IS HERE --- */}
-                    {/* Pass the high and low props from the selectedStockData */}
                     <AdvancedTradeTicket
                         ticker={selectedTicker}
                         price={selectedStockData?.price}
@@ -60,7 +56,8 @@ const DashboardPage = () => {
                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                         <Tabs value={activeTab} onChange={handleTabChange} aria-label="tabs">
                             <Tab label="Chart" />
-                            
+                            <Tab label="Portfolio Analytics" />
+                            <Tab label="News & Sentiment" />
                         </Tabs>
                     </Box>
                     <Box sx={{ flexGrow: 1, p: 1, minHeight: 0 }}>
@@ -75,10 +72,17 @@ const DashboardPage = () => {
 };
 
 // --- Child Components ---
-// All child components below are exactly as you provided them, no changes needed.
 
-// Watchlist Component
 const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
+    const [alertModalOpen, setAlertModalOpen] = useState(false);
+    const [modalTicker, setModalTicker] = useState(null);
+
+    const handleOpenAlert = (ticker) => {
+        setModalTicker(ticker);
+        setAlertModalOpen(true);
+    };
+    const handleCloseAlert = () => setAlertModalOpen(false);
+
     return (
         <>
             <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid grey' }}>Watchlist</Typography>
@@ -89,6 +93,7 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                             <TableCell>Ticker</TableCell>
                             <TableCell align="right">Price</TableCell>
                             <TableCell align="right">Change</TableCell>
+                            <TableCell align="center">Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -99,11 +104,16 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                             if (priceChange < 0) flashAnimation = `${flashRed} 0.5s ease-out`;
 
                             return (
-                                <TableRow key={stock.ticker} hover sx={{ cursor: 'pointer', animation: flashAnimation }} onClick={() => onSelectTicker(stock.ticker)}>
-                                    <TableCell>{stock.ticker}</TableCell>
-                                    <TableCell align="right">${stock.price?.toFixed(2)}</TableCell>
-                                    <TableCell align="right" sx={{ color: stock.change >= 0 ? 'success.main' : 'error.main' }}>
+                                <TableRow key={stock.ticker} hover>
+                                    <TableCell sx={{cursor: 'pointer'}} onClick={() => onSelectTicker(stock.ticker)}>{stock.ticker}</TableCell>
+                                    <TableCell sx={{cursor: 'pointer'}} align="right" onClick={() => onSelectTicker(stock.ticker)}>${stock.price?.toFixed(2)}</TableCell>
+                                    <TableCell sx={{cursor: 'pointer', color: stock.change >= 0 ? 'success.main' : 'error.main'}} align="right" onClick={() => onSelectTicker(stock.ticker)}>
                                         {stock.change_percent?.toFixed(2)}%
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        <IconButton size="small" title="Set Price Alert" onClick={() => handleOpenAlert(stock.ticker)}>
+                                            <NotificationsIcon fontSize="small" />
+                                        </IconButton>
                                     </TableCell>
                                 </TableRow>
                             );
@@ -111,49 +121,30 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                     </TableBody>
                 </Table>
             </TableContainer>
+            <PriceAlertModal open={alertModalOpen} onClose={handleCloseAlert} ticker={modalTicker} />
         </>
     );
 });
 
-// MainChart Component
-const MainChart = ({ ticker }) => {
+// --- THE FIX: The full, correct MainChart component is now included ---
+const MainChart = React.memo(({ ticker }) => {
     const [chartData, setChartData] = useState({ prices: [], plotData: [] });
     const [loading, setLoading] = useState(true);
-    const [analysis, setAnalysis] = useState('');
+    const [analysis, setAnalysis] = useState("");
     const [analysisLoading, setAnalysisLoading] = useState(false);
 
     useEffect(() => {
-        setAnalysis('');
+        setAnalysis("");
         const fetchChartData = async () => {
             if (!ticker) return;
             setLoading(true);
             try {
-                const res = await apiClient.get(`/historical/${ticker}`);
-                const data = res.data;
-                const priceData = {
-                    x: data.map(d => d.timestamp),
-                    open: data.map(d => d.open),
-                    high: data.map(d => d.high),
-                    low: data.map(d => d.low),
-                    close: data.map(d => d.close),
-                    type: 'candlestick',
-                    name: ticker,
-                    yaxis: 'y1',
-                    increasing: { line: { color: 'limegreen' } },
-                    decreasing: { line: { color: 'red' } }
-                };
-                const volumeData = {
-                    x: data.map(d => d.timestamp),
-                    y: data.map(d => d.volume),
-                    type: 'bar',
-                    name: 'Volume',
-                    yaxis: 'y2',
-                    marker: { color: '#f48fb1' }
-                };
-                setChartData({ prices: data, plotData: [priceData, volumeData] });
-            } catch (err) {
-                console.error('Failed to fetch chart data', err);
-            }
+                const response = await apiClient.get(`/historical/${ticker}`);
+                const data = response.data;
+                const priceTrace = { x: data.map(d => d.timestamp), open: data.map(d => d.open), high: data.map(d => d.high), low: data.map(d => d.low), close: data.map(d => d.close), type: 'candlestick', name: ticker, yaxis: 'y1', increasing: { line: { color: 'limegreen' } }, decreasing: { line: { color: 'red' } } };
+                const volumeTrace = { x: data.map(d => d.timestamp), y: data.map(d => d.volume), type: 'bar', name: 'Volume', yaxis: 'y2', marker: { color: '#f48fb1' } };
+                setChartData({prices: data, plotData: [priceTrace, volumeTrace]});
+            } catch (error) { console.error("Failed to fetch chart data", error); }
             setLoading(false);
         };
         fetchChartData();
@@ -163,90 +154,56 @@ const MainChart = ({ ticker }) => {
         if (!chartData.prices.length) return;
         setAnalysisLoading(true);
         try {
-            const res = await apiClient.post('/genai/chart-analysis', { ticker, prices: chartData.prices });
-            setAnalysis(res.data.analysis);
-        } catch (err) {
-            setAnalysis("Error fetching analysis.");
-        }
+            const response = await apiClient.post('/genai/chart-analysis', { ticker, prices: chartData.prices });
+            setAnalysis(response.data.analysis);
+        } catch (error) { setAnalysis("Error fetching analysis."); }
         setAnalysisLoading(false);
     };
-
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
+    
+    if (loading) return <Paper sx={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><CircularProgress /></Paper>;
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-            {/* Chart Section */}
-            <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 0 }}>
-                <Plot
-                    data={chartData.plotData}
-                    layout={{
-                        title: `${ticker} Price and Volume`,
-                        template: 'plotly_dark',
-                        showlegend: false,
-                        xaxis: { rangeslider: { visible: false } },
-                        yaxis: { domain: [0.3, 1] },
-                        yaxis2: { domain: [0, 0.2], showgrid: false },
-                        paper_bgcolor: 'transparent',
-                        plot_bgcolor: 'transparent',
-                        margin: { t: 40, b: 40, l: 40, r: 20 },
-                    }}
-                    config={{ responsive: true }}
-                    style={{ width: '100%', height: '100%' }}
-                    useResizeHandler
-                />
-
-                <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<AutoAwesomeIcon />}
-                    onClick={handleAnalyzeChart}
-                    disabled={analysisLoading}
-                    sx={{ position: 'absolute', top: 8, right: 8 }}
-                >
-                    {analysisLoading ? 'Analyzing...' : 'Analyze Chart'}
+        <Paper sx={{ height: '100%', p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">{ticker} Price and Volume</Typography>
+                <Button variant="outlined" size="small" startIcon={<AutoAwesomeIcon />} onClick={handleAnalyzeChart} disabled={analysisLoading}>
+                    {analysisLoading ? "Analyzing..." : "Analyze Chart"}
                 </Button>
             </Box>
-
-            {/* GenAI Analysis Section */}
-            <Collapse in={!!analysis || analysisLoading}>
-                <Paper
-                    elevation={4}
-                    sx={{
-                        p: 2,
-                        mt: 1, // Use margin-top instead of 2
-                        backgroundColor: '#1e1e1e',
-                        borderRadius: 1,
-                        border: '1px solid #444',
-                        color: 'white'
+            
+            <Box sx={{ flexGrow: 1, position: 'relative' }}>
+                 <Plot
+                    data={chartData.plotData}
+                    layout={{
+                        dragmode: 'pan', template: 'plotly_dark', showlegend: false,
+                        xaxis: { rangeslider: { visible: false } },
+                        yaxis: { title: 'Price (USD)', domain: [0.25, 1], autorange: true },
+                        yaxis2: { title: 'Volume', domain: [0, 0.2], autorange: true, showgrid: false },
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 20, b: 40, l: 50, r: 20 },
                     }}
-                >
-                    <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: '#90caf9' }}>
-                        <AutoAwesomeIcon fontSize="small" /> GenAI Analysis
+                    useResizeHandler={true} 
+                    style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+                    config={{ responsive: true, scrollZoom: true }}
+                />
+            </Box>
+
+            <Collapse in={!!analysis || analysisLoading}>
+                <Paper elevation={4} sx={{ p: 2, mt: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1}}>
+                        <AutoAwesomeIcon fontSize="small"/>
+                        GenAI Analysis
                     </Typography>
-                    {analysisLoading ? (
-                        <CircularProgress size={20} />
-                    ) : (
-                        <TypeAnimation
-                            sequence={[analysis]}
-                            wrapper="span"
-                            speed={70}
-                            cursor={false}
-                            style={{ fontSize: '0.9em', fontStyle: 'italic', color: '#e0e0e0' }}
-                        />
+                    {analysisLoading ? <CircularProgress size={20} /> : (
+                         <TypeAnimation sequence={[analysis]} wrapper="span" speed={70} cursor={false} style={{ fontSize: '0.9em', fontStyle: 'italic' }}/>
                     )}
                 </Paper>
             </Collapse>
-        </Box>
+        </Paper>
     );
-};
+});
 
-// NewsSentiment Component
+// --- THE FIX: The full, correct NewsSentiment component is now included ---
 const NewsSentiment = ({ ticker }) => {
     const [sentimentData, setSentimentData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -278,7 +235,7 @@ const NewsSentiment = ({ ticker }) => {
     }
 
     return (
-        <Box sx={{ p: 1 }}>
+        <Box sx={{ p: 1, height: '100%', overflowY: 'auto' }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
                 News & GenAI Sentiment for {ticker}
             </Typography>
@@ -299,5 +256,6 @@ const NewsSentiment = ({ ticker }) => {
         </Box>
     );
 };
+
 
 export default DashboardPage;
