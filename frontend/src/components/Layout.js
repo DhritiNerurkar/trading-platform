@@ -1,32 +1,28 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, CssBaseline, Divider } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, CssBaseline } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
-import AskAI from './AskAI'; // Import the new component
+import AssessmentIcon from '@mui/icons-material/Assessment'; // New Icon
+import AskAI from './AskAI';
 
 const drawerWidth = 200;
 
 const Layout = ({ children }) => {
     const navigate = useNavigate();
-    
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
         { text: 'Portfolio', icon: <ShowChartIcon />, path: '/portfolio' },
         { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' },
+        { text: 'Reporting', icon: <AssessmentIcon />, path: '/reporting' }, // NEW PAGE
     ];
-
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar>
-                    {/* Title takes up most of the space */}
-                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                        Nomura Next-Gen Trading
-                    </Typography>
-                    {/* Add the "Ask AI" button to the top bar */}
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>Nomura Next-Gen Trading</Typography>
                     <AskAI />
                 </Toolbar>
             </AppBar>

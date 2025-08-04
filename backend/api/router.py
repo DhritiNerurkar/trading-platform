@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List
 
+# --- Models ---
 class LoginRequest(BaseModel): username: str; password: str
 class TradeRequest(BaseModel): ticker: str; quantity: int
 class ChartDataRequest(BaseModel):
@@ -9,8 +10,10 @@ class ChartDataRequest(BaseModel):
     prices: List[dict] = Field(..., example=[{"timestamp": "2025-07-01", "close": 210.5}])
 class GenAIQueryRequest(BaseModel): query: str
 
+# --- API Router ---
 router = APIRouter()
 
+# --- GenAI Endpoints ---
 @router.post("/genai/query")
 async def handle_genai_query(request: GenAIQueryRequest):
     from services.genai_analyzer import genai_analyzer
@@ -28,6 +31,7 @@ async def get_news_and_sentiment(ticker: str):
     from services.genai_analyzer import genai_analyzer
     return await genai_analyzer.get_sentiment_for_ticker(ticker)
 
+# --- Portfolio & Reporting Endpoints ---
 @router.get("/portfolio")
 async def get_portfolio():
     from services.portfolio_manager import portfolio_manager
@@ -40,7 +44,13 @@ async def get_portfolio_history():
 async def get_transaction_history():
     from services.portfolio_manager import portfolio_manager
     return sorted(portfolio_manager.transaction_history, key=lambda x: x['timestamp'], reverse=True)
+# --- NEW: Endpoint for the Performance Report ---
+@router.get("/reports/performance-summary")
+async def get_performance_summary():
+    from services.reporting_service import reporting_service
+    return reporting_service.generate_performance_summary()
 
+# --- Trading Endpoints ---
 @router.post("/login")
 async def login(request: LoginRequest):
     if request.username == "trader" and request.password == "password": return {"success": True}

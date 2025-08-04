@@ -60,7 +60,6 @@ const DashboardPage = () => {
                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                         <Tabs value={activeTab} onChange={handleTabChange} aria-label="tabs">
                             <Tab label="Chart" />
-                            <Tab label="Portfolio Analytics" />
                             
                         </Tabs>
                     </Box>

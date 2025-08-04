@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import apiClient from '../api/apiClient';
-import { Box, Typography, Paper, Grid, List, ListItem, ListItemText, CircularProgress, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Paper, List, ListItem, ListItemText, CircularProgress, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 
 const NewsSentimentPage = () => {
     const { liveData } = useData();
     const [selectedTicker, setSelectedTicker] = useState('AAPL');
     const [sentimentData, setSentimentData] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchSentiment = async () => {
             if (!selectedTicker) return;
             setLoading(true);
@@ -18,9 +18,11 @@ const NewsSentimentPage = () => {
                 setSentimentData(response.data);
             } catch (error) {
                 console.error("Failed to fetch sentiment", error);
+                setSentimentData([]);
             }
             setLoading(false);
         };
+        
         fetchSentiment();
     }, [selectedTicker]);
 
@@ -34,7 +36,6 @@ const NewsSentimentPage = () => {
         <Box>
             <Typography variant="h4" gutterBottom>News & GenAI Sentiment</Typography>
             
-            {/* --- THE FIX: The page is no longer a grid, just a single panel --- */}
             <Paper sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>Ticker News & Sentiment</Typography>
                 <FormControl fullWidth sx={{ mb: 2 }}>
@@ -43,6 +44,8 @@ const NewsSentimentPage = () => {
                         labelId="ticker-select-label"
                         value={selectedTicker}
                         label="Select a Ticker"
+                        // --- THE FIX IS HERE ---
+                        // Changed 'e.g.target.value' to the correct 'e.target.value'
                         onChange={(e) => setSelectedTicker(e.target.value)}
                     >
                         {Object.keys(liveData).sort().map(ticker => (
