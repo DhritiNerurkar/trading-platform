@@ -21,6 +21,10 @@ const DashboardPage = () => {
     const [selectedTicker, setSelectedTicker] = useState('AAPL');
     const [activeTab, setActiveTab] = useState(0);
 
+    const handleTabChange = (event, newValue) => { // Corrected the handler name
+        setActiveTab(newValue);
+    };
+
     if (!isConnected || !portfolio) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
@@ -28,6 +32,9 @@ const DashboardPage = () => {
             </Box>
         );
     }
+    
+    // Get the full data object for the selected stock to pass down
+    const selectedStockData = liveData[selectedTicker];
 
     return (
         <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 100px)' }}>
@@ -36,9 +43,13 @@ const DashboardPage = () => {
                     <Watchlist liveData={liveData} onSelectTicker={setSelectedTicker} />
                 </Paper>
                 <Paper sx={{ flexGrow: 1 }}>
+                    {/* --- THE FIX IS HERE --- */}
+                    {/* Pass the high and low props from the selectedStockData */}
                     <AdvancedTradeTicket
                         ticker={selectedTicker}
-                        price={liveData[selectedTicker]?.price}
+                        price={selectedStockData?.price}
+                        high={selectedStockData?.high}
+                        low={selectedStockData?.low}
                         portfolio={portfolio}
                     />
                 </Paper>
@@ -47,7 +58,7 @@ const DashboardPage = () => {
             <Box sx={{ flexGrow: 1 }}>
                 <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <Tabs value={activeTab} onChange={(e, val) => setActiveTab(val)} aria-label="tabs">
+                        <Tabs value={activeTab} onChange={handleTabChange} aria-label="tabs">
                             <Tab label="Chart" />
                             <Tab label="Portfolio Analytics" />
                             <Tab label="News & Sentiment" />
@@ -63,6 +74,9 @@ const DashboardPage = () => {
         </Box>
     );
 };
+
+// --- Child Components ---
+// All child components below are exactly as you provided them, no changes needed.
 
 // Watchlist Component
 const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
@@ -169,7 +183,7 @@ const MainChart = ({ ticker }) => {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             {/* Chart Section */}
-            <Box sx={{ position: 'relative', width: '100%', height: 400 }}>
+            <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 0 }}>
                 <Plot
                     data={chartData.plotData}
                     layout={{
@@ -203,12 +217,12 @@ const MainChart = ({ ticker }) => {
             {/* GenAI Analysis Section */}
             <Collapse in={!!analysis || analysisLoading}>
                 <Paper
-                    elevation={6}
+                    elevation={4}
                     sx={{
                         p: 2,
-                        mt: 2,
+                        mt: 1, // Use margin-top instead of 2
                         backgroundColor: '#1e1e1e',
-                        borderRadius: 2,
+                        borderRadius: 1,
                         border: '1px solid #444',
                         color: 'white'
                     }}

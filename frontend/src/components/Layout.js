@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, CssBaseline } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, CssBaseline, Divider } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import NewspaperIcon from '@mui/icons-material/Newspaper'; // New Icon
+import NewspaperIcon from '@mui/icons-material/Newspaper';
+import AskAI from './AskAI'; // Import the new component
 
-const drawerWidth = 170;
+const drawerWidth = 200;
 
 const Layout = ({ children }) => {
     const navigate = useNavigate();
@@ -13,7 +14,7 @@ const Layout = ({ children }) => {
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
         { text: 'Portfolio', icon: <ShowChartIcon />, path: '/portfolio' },
-        { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' }, // New Page
+        { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' },
     ];
 
     return (
@@ -21,7 +22,12 @@ const Layout = ({ children }) => {
             <CssBaseline />
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar>
-                    <Typography variant="h6" noWrap component="div">Nomura Next-Gen Trading</Typography>
+                    {/* Title takes up most of the space */}
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+                        Nomura Next-Gen Trading
+                    </Typography>
+                    {/* Add the "Ask AI" button to the top bar */}
+                    <AskAI />
                 </Toolbar>
             </AppBar>
             <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink: 0, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' } }}>

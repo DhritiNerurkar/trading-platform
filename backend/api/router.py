@@ -8,11 +8,19 @@ class TradeRequest(BaseModel): ticker: str; quantity: int
 class ChartDataRequest(BaseModel):
     ticker: str
     prices: List[dict] = Field(..., example=[{"timestamp": "2025-07-01", "close": 210.5}])
+# --- NEW: Model for the smart search query ---
+class GenAIQueryRequest(BaseModel):
+    query: str
 
 # --- API Router ---
 router = APIRouter()
 
 # --- GenAI Endpoints ---
+@router.post("/genai/query") # NEW ENDPOINT
+async def handle_genai_query(request: GenAIQueryRequest):
+    from services.genai_analyzer import genai_analyzer
+    return await genai_analyzer.handle_user_query(request.query)
+
 @router.post("/genai/portfolio-briefing")
 async def get_portfolio_briefing():
     from services.genai_analyzer import genai_analyzer

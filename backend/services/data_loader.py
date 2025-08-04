@@ -37,7 +37,6 @@ class DataLoader:
                     df = pd.read_csv(file_to_use)
                     df['timestamp'] = pd.to_datetime(df['timestamp'])
                     data[ticker] = df
-                    # Get the second to last day's close as "previous day close" for simulation
                     if len(df) > 1:
                         closes[ticker] = df['close'].iloc[-2]
                 except Exception as e:
@@ -71,17 +70,22 @@ class DataLoader:
                 generators[ticker] = self._tick_generator(file_path, ticker)
         return generators
 
+    # --- THE FIX IS HERE ---
+    # The tick generator now yields the high and low prices for the interval.
     def _tick_generator(self, file_path, ticker):
         with open(file_path, 'r') as f:
             next(f)
             for line in f:
                 parts = line.strip().split(',')
-                price = float(parts[4])
+                price = float(parts[4]) # close price
+                high = float(parts[2])  # high price
+                low = float(parts[3])   # low price
                 prev_close = self.previous_day_closes.get(ticker, price)
                 change = price - prev_close
                 change_percent = (change / prev_close) * 100 if prev_close != 0 else 0
                 yield {
                     "ticker": ticker, "timestamp": parts[0], "price": price,
+                    "high": high, "low": low, # Add high and low to the payload
                     "change": change, "change_percent": change_percent
                 }
 
