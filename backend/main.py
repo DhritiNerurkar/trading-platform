@@ -5,12 +5,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.router import router
 from services.data_loader import data_loader
 from services.portfolio_manager import portfolio_manager
-from services.alert_service import alert_service # NEW IMPORT
+from services.alert_manager import alert_manager
 from core.config import SIMULATION_SPEED_SECONDS
 
 app = FastAPI(title="Nomura Trading Platform POC")
 
-app.add_middleware( CORSMiddleware, allow_origins=["http://localhost:3000"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(router, prefix="/api")
 
 class ConnectionManager:
@@ -20,11 +26,12 @@ class ConnectionManager:
     async def broadcast(self, message: dict):
         for connection in self.active_connections: await connection.send_json(message)
 
-# Create two separate managers for two WebSocket channels
+# --- THE FIX: Create two separate managers for the two WebSocket channels ---
 market_data_manager = ConnectionManager()
-alert_manager = ConnectionManager()
+alerts_connection_manager = ConnectionManager() # Renamed for clarity
 
 async def broadcast_market_data():
+    """The main loop for broadcasting live market data."""
     while True:
         live_ticks = await data_loader.get_next_tick()
         portfolio_manager.update_prices(live_ticks)
@@ -36,13 +43,15 @@ async def broadcast_market_data():
 
 @app.on_event("startup")
 async def startup_event():
+    """This runs when the FastAPI server starts up."""
     print("\n--- FastAPI Server Starting Up... ---")
     portfolio_manager.reset()
-    # --- NEW: Set up the alert service and start its background task ---
-    alert_service.set_alert_channel(alert_manager)
+    # --- THE FIX: Set up the alert manager and start both background tasks ---
+    alert_manager.set_alert_channel(alerts_connection_manager)
     asyncio.create_task(broadcast_market_data())
-    asyncio.create_task(alert_service.check_alerts())
+    asyncio.create_task(alert_manager.check_alerts_periodically())
 
+# --- THE FIX: Re-implement two distinct WebSocket endpoints ---
 @app.websocket("/ws/market-data")
 async def market_data_ws(websocket: WebSocket):
     await market_data_manager.connect(websocket)
@@ -50,13 +59,14 @@ async def market_data_ws(websocket: WebSocket):
         while True: await websocket.receive_text()
     except WebSocketDisconnect: market_data_manager.disconnect(websocket)
 
-@app.websocket("/ws/alerts") # NEW WEBSOCKET ENDPOINT
+@app.websocket("/ws/alerts")
 async def alerts_ws(websocket: WebSocket):
-    await alert_manager.connect(websocket)
+    await alerts_connection_manager.connect(websocket)
     try:
         while True: await websocket.receive_text()
-    except WebSocketDisconnect: alert_manager.disconnect(websocket)
+    except WebSocketDisconnect: alerts_connection_manager.disconnect(websocket)
 
 
 @app.get("/")
-def read_root(): return {"Status": "Nomura Trading Backend is Running"}
+def read_root():
+    return {"Status": "Nomura Trading Backend is Running"}

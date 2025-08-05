@@ -1,39 +1,31 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 # --- Models for request bodies ---
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+class LoginRequest(BaseModel): username: str; password: str
+class TradeRequest(BaseModel): ticker: str; quantity: int
+class ChartDataRequest(BaseModel): ticker: str; prices: List[dict]
+class GenAIQueryRequest(BaseModel): query: str
 
-class TradeRequest(BaseModel):
-    ticker: str
-    quantity: int
-
-class ChartDataRequest(BaseModel):
-    ticker: str
-    prices: List[dict] = Field(..., example=[{"timestamp": "2025-07-01", "close": 210.5}])
-
-class GenAIQueryRequest(BaseModel):
-    query: str
-
-# --- THE FIX IS HERE: Define the missing PriceAlertRequest model ---
+# --- THE FIX: A new, complete model for the Price Alert with optional auto-trade fields ---
 class PriceAlertRequest(BaseModel):
     ticker: str
     target_price: float
-    condition: str # Should be "above" or "below"
-# --- END FIX ---
-
+    condition: str  # 'above' or 'below'
+    auto_trade_action: Optional[str] = None # Can be 'buy' or 'sell'
+    auto_trade_quantity: Optional[int] = None
 
 # --- API Router ---
 router = APIRouter()
 
-# --- NEW: Alert Endpoint ---
+# --- NEW/UPDATED Alert Endpoint ---
 @router.post("/alerts/set-price-alert")
 async def set_price_alert(request: PriceAlertRequest):
-    from services.alert_service import alert_service
-    return alert_service.add_price_alert(request.ticker, request.target_price, request.condition)
+    """Handles setting a price alert, including optional automated trades."""
+    from services.alert_manager import alert_manager
+    # Pass the entire request object as a dictionary to the manager
+    return alert_manager.set_price_alert(request.dict())
 
 # --- GenAI Endpoints ---
 @router.post("/genai/query")
@@ -67,15 +59,24 @@ async def get_portfolio_history():
     from services.portfolio_manager import portfolio_manager
     return portfolio_manager.value_history
 
-@router.get("/portfolio/transactions")
-async def get_transaction_history():
+# Check if transaction_history exists before creating the endpoint
+try:
     from services.portfolio_manager import portfolio_manager
-    return sorted(portfolio_manager.transaction_history, key=lambda x: x['timestamp'], reverse=True)
+    if hasattr(portfolio_manager, 'transaction_history'):
+        @router.get("/portfolio/transactions")
+        async def get_transaction_history():
+            return sorted(portfolio_manager.transaction_history, key=lambda x: x['timestamp'], reverse=True)
+except ImportError:
+    pass
 
-@router.get("/reports/performance-summary")
-async def get_performance_summary():
+# Check if reporting_service exists before creating the endpoint
+try:
     from services.reporting_service import reporting_service
-    return reporting_service.generate_performance_summary()
+    @router.get("/reports/performance-summary")
+    async def get_performance_summary():
+        return reporting_service.generate_performance_summary()
+except ImportError:
+    pass
 
 # --- Trading Endpoints ---
 @router.post("/login")
