@@ -7,14 +7,14 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 import AssessmentIcon from '@mui/icons-material/Assessment'; // New Icon
 import AskAI from './AskAI';
 
-const drawerWidth = 200;
+const drawerWidth = 170;
 
 const Layout = ({ children }) => {
     const navigate = useNavigate();
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
         { text: 'Portfolio', icon: <ShowChartIcon />, path: '/portfolio' },
-        { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' },
+        // { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' },
         { text: 'Reporting', icon: <AssessmentIcon />, path: '/reporting' }, // NEW PAGE
     ];
     return (

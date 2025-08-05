@@ -57,7 +57,7 @@ const AskAI = () => {
                 }}>
                     <Typography variant="h6" component="h2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AutoAwesomeIcon color="primary" />
-                        Ask Nomura AI
+                        Ask AI
                     </Typography>
                     <Typography sx={{ mt: 1, mb: 2 }} color="text.secondary">
                         Ask about your portfolio, stock news, or market sentiment.
