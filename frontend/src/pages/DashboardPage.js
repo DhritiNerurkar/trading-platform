@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
 import Plot from 'react-plotly.js';
+import Plotly from 'plotly.js-dist-min';
 import { useData } from '../context/DataContext';
 import {
     Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -10,7 +11,6 @@ import { keyframes } from '@emotion/react';
 import { TypeAnimation } from 'react-type-animation';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
-// --- Import all necessary child components and icons ---
 import AdvancedTradeTicket from '../components/AdvancedTradeTicket';
 import PortfolioAnalytics from '../components/PortfolioAnalytics';
 import PriceAlertModal from '../components/PriceAlertModal';
@@ -22,11 +22,6 @@ const flashRed = keyframes`from { background-color: #b71c1c; } to { background-c
 const DashboardPage = () => {
     const { liveData, portfolio, isConnected } = useData();
     const [selectedTicker, setSelectedTicker] = useState('AAPL');
-    const [activeTab, setActiveTab] = useState(0);
-
-    const handleTabChange = (event, newValue) => {
-        setActiveTab(newValue);
-    };
 
     if (!isConnected || !portfolio) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><CircularProgress /></Box>;
@@ -35,36 +30,23 @@ const DashboardPage = () => {
     const selectedStockData = liveData[selectedTicker];
 
     return (
-        <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 100px)' }}>
-            <Box sx={{ width: '30%', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Paper>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)', gap: 2 }}>
+            <Paper>
+                <AdvancedTradeTicket
+                    ticker={selectedTicker}
+                    price={selectedStockData?.price}
+                    high={selectedStockData?.high}
+                    low={selectedStockData?.low}
+                    portfolio={portfolio}
+                    layout="horizontal"
+                />
+            </Paper>
+            <Box sx={{ flexGrow: 1, display: 'flex', gap: 2, minHeight: 0 }}>
+                <Paper sx={{ width: '30%', minWidth: '400px', display: 'flex', flexDirection: 'column' }}>
                     <Watchlist liveData={liveData} onSelectTicker={setSelectedTicker} />
                 </Paper>
-                <Paper sx={{ flexGrow: 1 }}>
-                    <AdvancedTradeTicket
-                        ticker={selectedTicker}
-                        price={selectedStockData?.price}
-                        high={selectedStockData?.high}
-                        low={selectedStockData?.low}
-                        portfolio={portfolio}
-                    />
-                </Paper>
-            </Box>
-
-            <Box sx={{ flexGrow: 1 }}>
-                <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <Tabs value={activeTab} onChange={handleTabChange} aria-label="tabs">
-                            <Tab label="Chart" />
-                            <Tab label="Portfolio Analytics" />
-                            <Tab label="News & Sentiment" />
-                        </Tabs>
-                    </Box>
-                    <Box sx={{ flexGrow: 1, p: 1, minHeight: 0 }}>
-                        {activeTab === 0 && <MainChart ticker={selectedTicker} />}
-                        {activeTab === 1 && <PortfolioAnalytics />}
-                        {activeTab === 2 && <NewsSentiment ticker={selectedTicker} />}
-                    </Box>
+                <Paper sx={{ flexGrow: 1, height: '100%' }}>
+                    <MainContent ticker={selectedTicker} />
                 </Paper>
             </Box>
         </Box>
@@ -86,7 +68,7 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
     return (
         <>
             <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid grey' }}>Watchlist</Typography>
-            <TableContainer sx={{ maxHeight: 350 }}>
+            <TableContainer sx={{ flexGrow: 1, overflowY: 'auto' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
@@ -106,7 +88,7 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                             return (
                                 <TableRow key={stock.ticker} hover>
                                     <TableCell sx={{cursor: 'pointer'}} onClick={() => onSelectTicker(stock.ticker)}>{stock.ticker}</TableCell>
-                                    <TableCell sx={{cursor: 'pointer'}} align="right" onClick={() => onSelectTicker(stock.ticker)}>${stock.price?.toFixed(2)}</TableCell>
+                                    <TableCell sx={{cursor: 'pointer', animation: flashAnimation}} align="right" onClick={() => onSelectTicker(stock.ticker)}>${stock.price?.toFixed(2)}</TableCell>
                                     <TableCell sx={{cursor: 'pointer', color: stock.change >= 0 ? 'success.main' : 'error.main'}} align="right" onClick={() => onSelectTicker(stock.ticker)}>
                                         {stock.change_percent?.toFixed(2)}%
                                     </TableCell>
@@ -126,13 +108,38 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
     );
 });
 
-// --- THE FIX: The full, correct MainChart component is now included ---
+const MainContent = ({ ticker }) => {
+    const [activeTab, setActiveTab] = useState(0);
+    const handleTabChange = (event, newValue) => { setActiveTab(newValue); };
+
+    return (
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs value={activeTab} onChange={handleTabChange} aria-label="main content tabs">
+                    <Tab label="Chart" />
+                    <Tab label="Portfolio Analytics" />
+                    <Tab label="News & Sentiment" />
+                </Tabs>
+            </Box>
+            <Box sx={{ flexGrow: 1, p: 1, minHeight: 0 }}>
+                {activeTab === 0 && <MainChart ticker={ticker} />}
+                {activeTab === 1 && <PortfolioAnalytics />}
+                {activeTab === 2 && <NewsSentiment ticker={ticker} />}
+            </Box>
+        </Box>
+    );
+};
+
+
 const MainChart = React.memo(({ ticker }) => {
+    const { liveData } = useData();
     const [chartData, setChartData] = useState({ prices: [], plotData: [] });
     const [loading, setLoading] = useState(true);
     const [analysis, setAnalysis] = useState("");
     const [analysisLoading, setAnalysisLoading] = useState(false);
+    const plotRef = React.useRef(null);
 
+    // Effect 1: Load the initial historical data
     useEffect(() => {
         setAnalysis("");
         const fetchChartData = async () => {
@@ -141,14 +148,61 @@ const MainChart = React.memo(({ ticker }) => {
             try {
                 const response = await apiClient.get(`/historical/${ticker}`);
                 const data = response.data;
-                const priceTrace = { x: data.map(d => d.timestamp), open: data.map(d => d.open), high: data.map(d => d.high), low: data.map(d => d.low), close: data.map(d => d.close), type: 'candlestick', name: ticker, yaxis: 'y1', increasing: { line: { color: 'limegreen' } }, decreasing: { line: { color: 'red' } } };
-                const volumeTrace = { x: data.map(d => d.timestamp), y: data.map(d => d.volume), type: 'bar', name: 'Volume', yaxis: 'y2', marker: { color: '#f48fb1' } };
+                
+                // --- THE FIX: The initial data MUST be a flat array for Plotly ---
+                const priceTrace = { 
+                    x: data.map(d => d.timestamp), 
+                    open: data.map(d => d.open), 
+                    high: data.map(d => d.high), 
+                    low: data.map(d => d.low), 
+                    close: data.map(d => d.close), 
+                    type: 'candlestick', name: ticker, yaxis: 'y1', 
+                    increasing: { line: { color: 'limegreen' } }, 
+                    decreasing: { line: { color: 'red' } } 
+                };
+                const volumeTrace = { 
+                    x: data.map(d => d.timestamp), 
+                    y: data.map(d => d.volume), 
+                    type: 'bar', name: 'Volume', yaxis: 'y2', 
+                    marker: { color: '#f48fb1' } 
+                };
+
                 setChartData({prices: data, plotData: [priceTrace, volumeTrace]});
             } catch (error) { console.error("Failed to fetch chart data", error); }
             setLoading(false);
         };
         fetchChartData();
     }, [ticker]);
+    
+    // Effect 2: Handle LIVE data updates
+    useEffect(() => {
+        const liveTickData = liveData[ticker];
+        
+        if (plotRef.current && plotRef.current.el && liveTickData && chartData.prices.length > 0 && liveTickData.volume) {
+            const plotlyInstance = plotRef.current.el;
+            const lastTimestamp = plotlyInstance.data[0].x.slice(-1)[0];
+            
+            if (new Date(liveTickData.timestamp) > new Date(lastTimestamp)) {
+                // --- THE FIX: The new data for extendTraces MUST be wrapped in an extra array ---
+                const newPoint = {
+                    x: [[liveTickData.timestamp]],
+                    open: [[liveTickData.open]],
+                    high: [[liveTickData.high]],
+                    low: [[liveTickData.low]],
+                    close: [[liveTickData.price]]
+                };
+                const newVolume = {
+                    x: [[liveTickData.timestamp]],
+                    y: [[liveTickData.volume]]
+                };
+
+                // The indices [0] and [1] correspond to the price and volume traces
+                Plotly.extendTraces(plotlyInstance, newPoint, [0]);
+                Plotly.extendTraces(plotlyInstance, newVolume, [1]);
+            }
+        }
+    }, [liveData, ticker, chartData.prices]);
+
 
     const handleAnalyzeChart = async () => {
         if (!chartData.prices.length) return;
@@ -173,6 +227,7 @@ const MainChart = React.memo(({ ticker }) => {
             
             <Box sx={{ flexGrow: 1, position: 'relative' }}>
                  <Plot
+                    ref={plotRef}
                     data={chartData.plotData}
                     layout={{
                         dragmode: 'pan', template: 'plotly_dark', showlegend: false,
@@ -203,8 +258,9 @@ const MainChart = React.memo(({ ticker }) => {
     );
 });
 
-// --- THE FIX: The full, correct NewsSentiment component is now included ---
+
 const NewsSentiment = ({ ticker }) => {
+    // ... (This component remains the same)
     const [sentimentData, setSentimentData] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -256,6 +312,5 @@ const NewsSentiment = ({ ticker }) => {
         </Box>
     );
 };
-
 
 export default DashboardPage;
