@@ -38,6 +38,7 @@ The platform is built on a modern technology stack featuring a **Python (FastAPI
 
 ### Frontend
 -   **Framework:** React
+-   **Build Tool:** Vite
 -   **UI Library:** Material-UI (MUI)
 -   **Charting:** Plotly.js
 -   **API Communication:** Axios
@@ -69,6 +70,8 @@ The platform is built on a modern technology stack featuring a **Python (FastAPI
 │ │ ├── /context/
 │ │ └── /pages/
 │ ├── package.json
+│ ├── vite.config.js
+│ └── index.html
 │
 ├── /data/
 │ ├── simulation_historical_data/
@@ -138,12 +141,12 @@ To run the full application, you must have three separate terminals running simu
     uvicorn main:app --reload
 - Terminal 3: Frontend Server
     Navigate to the /frontend directory.
-    Run the React development server:
-    npm start
-    This will automatically open the application in your browser at http://localhost:3000.
+    Run the Vite development server:
+    npm run dev
+    This will automatically open the application in your browser at http://localhost:5173.
 
 ### 6. How to Use
-Navigate to http://localhost:3000.
+Navigate to http://localhost:5173.
 Log in using the mock credentials:
     Username: trader
     Password: password
