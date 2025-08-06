@@ -19,6 +19,9 @@ import PortfolioAnalytics from '../components/PortfolioAnalytics';
 import PriceAlertModal from '../components/PriceAlertModal';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 
+import PushPinIcon from "@mui/icons-material/PushPin";
+import usePinnedTickers from "../components/usePinnedTickers";
+
 const flashGreen = keyframes`from { background-color: #004d40; } to { background-color: transparent; }`;
 const flashRed = keyframes`from { background-color: #b71c1c; } to { background-color: transparent; }`;
 
@@ -61,6 +64,8 @@ const DashboardPage = () => {
 const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
     const [alertModalOpen, setAlertModalOpen] = useState(false);
     const [modalTicker, setModalTicker] = useState(null);
+    const { toggle, isPinned } = usePinnedTickers();
+
 
     const handleOpenAlert = (ticker) => {
         setModalTicker(ticker);
@@ -79,6 +84,7 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                             <TableCell align="right">Price</TableCell>
                             <TableCell align="right">Change</TableCell>
                             <TableCell align="center">Actions</TableCell>
+                            <TableCell align="center">Pin</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -99,6 +105,22 @@ const Watchlist = React.memo(({ liveData, onSelectTicker }) => {
                                         <IconButton size="small" title="Set Price Alert" onClick={() => handleOpenAlert(stock.ticker)}>
                                             <NotificationsIcon fontSize="small" />
                                         </IconButton>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        <IconButton
+                                            size="small"
+                                            color={isPinned(stock.ticker) ? "warning" : "default"}
+                                            title={isPinned(stock.ticker) ? "Unpin" : "Pin to Watchlist"}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggle(stock.ticker);
+                                            }}
+                                            sx={{ mr: 0.5 }}
+                                        >
+                                            <PushPinIcon />
+                                        </IconButton>
+                                        {/* existing price alert button... */}
+                                        <IconButton /* ... */ />
                                     </TableCell>
                                 </TableRow>
                             );

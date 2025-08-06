@@ -15,6 +15,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import PinnedPage from "./components/PinnedPage";
+
 const darkTheme = createTheme({
   palette: { mode: 'dark', primary: { main: '#90caf9' }, secondary: { main: '#f48fb1' }, background: { default: '#121212', paper: '#1e1e1e' } },
 });
@@ -44,6 +46,7 @@ const AppRoutes = () => {
                 <Route path="/news" element={<NewsSentimentPage />} />
                 <Route path="/reporting" element={<ReportingPage />} /> {/* NEW ROUTE */}
                 <Route path="*" element={<Navigate to="/dashboard" />} />
+                <Route path="/pinned" element={<PinnedPage />} />
             </Routes>
         </Layout></DataProvider>
     )

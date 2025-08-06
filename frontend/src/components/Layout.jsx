@@ -6,6 +6,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 import AssessmentIcon from '@mui/icons-material/Assessment'; // New Icon
 import AskAI from './AskAI';
+import PushPinIcon from "@mui/icons-material/PushPin";
 
 const drawerWidth = 170;
 
@@ -16,6 +17,7 @@ const Layout = ({ children }) => {
         { text: 'Portfolio', icon: <ShowChartIcon />, path: '/portfolio' },
         // { text: 'News & Sentiment', icon: <NewspaperIcon />, path: '/news' },
         { text: 'Reporting', icon: <AssessmentIcon />, path: '/reporting' }, // NEW PAGE
+        { text: 'Pinned Stocks', icon: <PushPinIcon />, path: '/pinned' },
     ];
     return (
         <Box sx={{ display: 'flex' }}>
