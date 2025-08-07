@@ -3,7 +3,7 @@ import { Box, Typography, TextField, Button, Grid } from '@mui/material';
 import { toast } from 'react-toastify';
 import apiClient from '../api/apiClient';
 
-const AdvancedTradeTicket = ({ ticker, price, high, low, portfolio, layout = 'horizontal' }) => {
+const AdvancedTradeTicket = ({ ticker, price, high, low, bid, ask, portfolio, layout = 'horizontal', onTradeSuccess }) => {
     const [quantity, setQuantity] = useState(1);
     const [estimatedCost, setEstimatedCost] = useState(0);
 
@@ -24,6 +24,10 @@ const AdvancedTradeTicket = ({ ticker, price, high, low, portfolio, layout = 'ho
             const response = await apiClient.post(`/${action}`, { ticker, quantity: parseInt(quantity, 10) });
             if (response.data.success) {
                 toast.success(`Successfully ${action === 'buy' ? 'bought' : 'sold'} ${quantity} of ${ticker}`);
+                // Call the callback to refresh transaction history
+                if (onTradeSuccess) {
+                    onTradeSuccess();
+                }
             } else {
                 toast.error(`Trade failed: ${response.data.message}`);
             }
@@ -100,6 +104,7 @@ const AdvancedTradeTicket = ({ ticker, price, high, low, portfolio, layout = 'ho
                         <Typography variant="body2" sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                             Day's High: <strong>${high?.toFixed(2) || 'N/A'}</strong>
                             Day's Low: <strong>${low?.toFixed(2) || 'N/A'}</strong>
+                            Spread: <strong style={{ color: '#10b981' }}>${bid?.toFixed(2) || '...'} - ${ask?.toFixed(2) || '...'}</strong>
                             Est. Cost: <strong>${estimatedCost.toFixed(2)}</strong>
                             Cash: <strong>${portfolio?.cash?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '...'}</strong>
                         </Typography>

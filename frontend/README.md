@@ -1,8 +1,8 @@
-# Nomura Next-Gen Trading Platform POC
+# Next-Gen Tradely POC
 
 ## Project Overview
 
-This project is a Proof of Concept (POC) for a **Next-Generation Trading Platform**, developed as a response to the **Nomura Tech Graduate Program 2025 Project Brief**. The application simulates a modern, real-time trading dashboard, integrating key functionalities like live price tracking, portfolio management, and advanced analytics powered by Generative AI.
+This project is a Proof of Concept (POC) for a **Next-Generation Tradely**, developed as a response to the **Tech Graduate Program 2025 Project Brief**. The application simulates a modern, real-time trading dashboard, integrating key functionalities like live price tracking, portfolio management, and advanced analytics powered by Generative AI.
 
 The platform is built on a modern technology stack featuring a **Python (FastAPI)** backend and a **React** frontend, designed to be scalable, performant, and easily extensible. The core objective is to demonstrate the practical application of cutting-edge technologies, including cloud principles, DevOps practices, and especially **Generative AI**, to enhance the trading experience and operational efficiency.
 
@@ -52,7 +52,7 @@ The platform is built on a modern technology stack featuring a **Python (FastAPI
 
 ## Project Structure
 
-/nomura-trading-poc/
+/trading-poc/
 ├── /backend/
 │ ├── /api/
 │ ├── /core/

@@ -47,7 +47,7 @@ const AskAI = () => {
 
     return (
         <>
-            <IconButton onClick={handleOpen} color="inherit" title="Ask Nomura AI">
+            <IconButton onClick={handleOpen} color="inherit" title="Ask AI">
                 <AutoAwesomeIcon />
             </IconButton>
             <Modal open={open} onClose={handleClose}>
@@ -62,7 +62,7 @@ const AskAI = () => {
                     <Typography sx={{ mt: 1, mb: 2 }} color="text.secondary">
                         Ask about your portfolio, stock news, or market sentiment.
                     </Typography>
-                    
+
                     {/* --- THE FIX: Add the suggestion chips --- */}
                     <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
                         {suggestedQuestions.map((q, index) => (
@@ -89,14 +89,14 @@ const AskAI = () => {
                         </IconButton>
                     </Box>
 
-                    { (loading || response) && (
+                    {(loading || response) && (
                         <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, minHeight: '100px' }}>
                             {loading ? (
-                                <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%'}}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                                     <CircularProgress size={24} />
                                 </Box>
                             ) : (
-                                <TypeAnimation sequence={[response]} wrapper="p" speed={70} cursor={false} style={{ margin: 0, whiteSpace: 'pre-wrap' }}/>
+                                <TypeAnimation sequence={[response]} wrapper="p" speed={70} cursor={false} style={{ margin: 0, whiteSpace: 'pre-wrap' }} />
                             )}
                         </Box>
                     )}

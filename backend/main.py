@@ -8,7 +8,7 @@ from services.portfolio_manager import portfolio_manager
 from services.alert_manager import alert_manager
 from core.config import SIMULATION_SPEED_SECONDS
 
-app = FastAPI(title="Nomura Trading Platform POC")
+app = FastAPI(title="Tradely POC")
 
 app.add_middleware(
     CORSMiddleware,
@@ -69,4 +69,4 @@ async def alerts_ws(websocket: WebSocket):
 
 @app.get("/")
 def read_root():
-    return {"Status": "Nomura Trading Backend is Running"}
+    return {"Status": "Trading Backend is Running"}

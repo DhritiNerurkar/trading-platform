@@ -83,10 +83,20 @@ class DataLoader:
                 prev_close = self.previous_day_closes.get(ticker, price)
                 change = price - prev_close
                 change_percent = (change / prev_close) * 100 if prev_close != 0 else 0
+                
+                # Calculate bid and ask based on current price
+                # Simulate realistic spread (0.1% to 0.5% of price)
+                import random
+                spread_percent = random.uniform(0.001, 0.005)  # 0.1% to 0.5%
+                spread_amount = price * spread_percent
+                bid = price - (spread_amount / 2)
+                ask = price + (spread_amount / 2)
+                
                 yield {
                     "ticker": ticker, "timestamp": parts[0], "price": price,
                     "high": high, "low": low, # Add high and low to the payload
-                    "change": change, "change_percent": change_percent
+                    "change": change, "change_percent": change_percent,
+                    "bid": round(bid, 2), "ask": round(ask, 2)  # Add bid and ask
                 }
 
     async def get_next_tick(self):

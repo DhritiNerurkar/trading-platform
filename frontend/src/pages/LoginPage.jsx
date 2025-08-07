@@ -29,7 +29,7 @@ const LoginPage = () => {
     return (
         <Container component="main" maxWidth="xs">
             <Paper elevation={6} sx={{ mt: 8, p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 2 }}>
-                <Typography component="h1" variant="h5">Nomura Trading Platform</Typography>
+                <Typography component="h1" variant="h5">Tradely</Typography>
                 <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
                     <TextField margin="normal" required fullWidth id="username" label="Username" name="username" autoComplete="username" autoFocus value={username} onChange={(e) => setUsername(e.target.value)} />
                     <TextField margin="normal" required fullWidth name="password" label="Password" type="password" id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />

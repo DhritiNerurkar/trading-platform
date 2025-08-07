@@ -59,15 +59,10 @@ async def get_portfolio_history():
     from services.portfolio_manager import portfolio_manager
     return portfolio_manager.value_history
 
-# Check if transaction_history exists before creating the endpoint
-try:
+@router.get("/portfolio/transactions")
+async def get_transaction_history():
     from services.portfolio_manager import portfolio_manager
-    if hasattr(portfolio_manager, 'transaction_history'):
-        @router.get("/portfolio/transactions")
-        async def get_transaction_history():
-            return sorted(portfolio_manager.transaction_history, key=lambda x: x['timestamp'], reverse=True)
-except ImportError:
-    pass
+    return sorted(portfolio_manager.transaction_history, key=lambda x: x['timestamp'], reverse=True)
 
 # Check if reporting_service exists before creating the endpoint
 try:

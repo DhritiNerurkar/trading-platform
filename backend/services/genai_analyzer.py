@@ -54,14 +54,14 @@ class GenAIAnalyzer:
                 pnl_data.append(f"{ticker}: Today's P&L ${pnl:.2f}")
         
         context = f"Current Holdings: {holdings}. Today's P&L data: {pnl_data}."
-        prompt = f"You are a helpful AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer."
+        prompt = f"You are a helpful AI assistant for Tradely. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer."
         answer = await self._run_genai_prompt(prompt)
         return {"answer": answer}
 
     async def answer_news_query(self, query: str, ticker: str):
         news_items = await self.get_sentiment_for_ticker(ticker)
         context = f"Recent news for {ticker}: {news_items}"
-        prompt = f"You are a helpful AI assistant for a trading platform. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer summarizing the news and overall sentiment."
+        prompt = f"You are a helpful AI assistant for Tradely. A user asked: '{query}'. Based on this data: {context}. Formulate a direct, concise answer summarizing the news and overall sentiment."
         answer = await self._run_genai_prompt(prompt)
         return {"answer": answer}
 
@@ -70,7 +70,7 @@ class GenAIAnalyzer:
         """Handles general queries and explicitly prevents financial advice."""
         # This new prompt is direct and gives the AI a clear set of rules.
         prompt = f"""
-        **ROLE AND GOAL**: You are "AI", a helpful assistant for a financial trading platform. Your primary goal is to be helpful while being extremely safe and never giving financial advice.
+        **ROLE AND GOAL**: You are "AI", a helpful assistant for Tradely. Your primary goal is to be helpful while being extremely safe and never giving financial advice.
 
         **RULES**:
         1.  **NEVER give financial advice.** Do not suggest buying, selling, or holding any specific stock. Do not predict future prices.

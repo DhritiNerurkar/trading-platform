@@ -50,11 +50,15 @@ class PortfolioManager:
             self.holdings[ticker] = { "shares": new_total_shares, "avg_price": new_avg_price }
         else:
             self.holdings[ticker] = { "shares": quantity, "avg_price": price }
-        self.transaction_history.append({
+        
+        transaction = {
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "ticker": ticker, "action": "BUY", "quantity": quantity,
             "price": price, "total_value": cost
-        })
+        }
+        self.transaction_history.append(transaction)
+        print(f"Transaction recorded: {transaction}")
+        print(f"Total transactions: {len(self.transaction_history)}")
         return {"success": True, "message": f"Bought {quantity} of {ticker}"}
 
     def sell(self, ticker: str, quantity: int):
